@@ -1,0 +1,26 @@
+run make  then enter eg 24930 o/p = 'ab'
+
+main() written in C
+main calls A()
+
+A() written in C
+A takes user input for a long n
+it then calls B passing n as parameter
+
+B(long n) written in X86_64 asm
+in B the top of stack contains return address. this is popped.
+then new address which is C is pushed. extern C brings in C.
+
+then the long n which is stored in rdi.
+this is moved to a variable string
+mov rcx, string
+mov [rcx], rdi
+
+then the 8 bytes in long are printed using a loop bytewise.
+
+then ret the top of stack contains address of C.
+the control passes to C.
+
+C() written in C
+prints youre in C
+then exit(0).

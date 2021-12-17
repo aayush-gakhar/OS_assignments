@@ -1,0 +1,86 @@
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index f6b5779..43cbb52 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -369,6 +369,7 @@
+ 445	common	landlock_add_rule	sys_landlock_add_rule
+ 446	common	landlock_restrict_self	sys_landlock_restrict_self
+ 447	common	memfd_secret		sys_memfd_secret
++448	common	delay_process		sys_delay_process
+ 
+ #
+ # Due to a historical design error, certain syscalls are numbered differently
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index ec8d07d..d922c4e 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -472,6 +472,7 @@ struct sched_entity {
+ 	u64				exec_start;
+ 	u64				sum_exec_runtime;
+ 	u64				vruntime;
++	u64				delay;
+ 	u64				prev_sum_exec_runtime;
+ 
+ 	u64				nr_migrations;
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 399c37c..256002b 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -3956,6 +3956,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
+ 	p->se.prev_sum_exec_runtime	= 0;
+ 	p->se.nr_migrations		= 0;
+ 	p->se.vruntime			= 0;
++	p->se.delay			= 0;
+ 	INIT_LIST_HEAD(&p->se.group_node);
+ 
+ #ifdef CONFIG_FAIR_GROUP_SCHED
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+index 30a6984..6099629 100644
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -812,6 +812,13 @@ static void update_curr(struct cfs_rq *cfs_rq)
+ 	schedstat_add(cfs_rq->exec_clock, delta_exec);
+ 
+ 	curr->vruntime += calc_delta_fair(delta_exec, curr);
++	curr->vruntime += (curr->delay)*1000000;
++
++	int nice_value = task_nice(container_of(curr, struct task_struct, se));
++	if(nice_value == 5){
++		printk(KERN_INFO "pid: %d, timestamp: %llu\n", container_of(curr, struct task_struct, se)->pid, now);
++	}
++
+ 	update_min_vruntime(cfs_rq);
+ 
+ 	if (entity_is_task(curr)) {
+diff --git a/kernel/sys.c b/kernel/sys.c
+index ef1a78f..eb79ec2 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -200,6 +200,27 @@ static int set_one_prio(struct task_struct *p, int niceval, int error)
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE2(delay_process, int, pid, int, delay)
++{
++	struct task_struct *task_data;
++
++	printk("syscall recieved. pid: %d\n",pid);
++	if (pid < 1 || pid > 2147483647) {
++		printk(KERN_ALERT "Invalid PID: %d\n", pid);
++		return -EINVAL;
++	}
++	task_data = pid_task(find_vpid(pid), PIDTYPE_PID);
++
++	if (task_data == NULL) {
++		printk(KERN_ALERT "Cannot get task_struct for PID: %d\n",pid);
++		return -ESRCH;
++	}
++	task_data->se.delay = delay;
++
++	printk(KERN_INFO "delay for PID %d changed to %d msec\n",pid, delay);
++	return 0;
++}
++
+ SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
+ {
+ 	struct task_struct *g, *p;

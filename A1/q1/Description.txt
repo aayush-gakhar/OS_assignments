@@ -1,0 +1,65 @@
+run make then ./q1a or ./q1b
+##################################################################################################################################################################
+
+q1a.
+
+main function calls 'pid=fork()' which forks the process. this returns pid.
+The variable pid stores the child Pid in the parent process and 0 in child process.
+If there is an error the pid is returned as negative.
+if(pid<0){
+    perror("pid");
+	return EXIT_FAILURE;
+} //this handles the negative pid error.
+
+Now in child process pid is 0.
+if(pid==0){
+    readcsv('A');
+    exit(0);
+}
+this block only runs in the child process
+
+else{
+    int status;
+    waitpid(pid,&status,0);
+    readcsv('B');
+}
+and this block only runs in the parent.
+
+now the readcsv() function [void readcsv(char section)] takes the section as a char.
+then using 'int fd = open("student_record.csv", O_RDONLY);' open function it opens a file as readonly
+and returns the file descriptor fd. open takes the file path and other options as paramaters. O_RDONLY stands for readonly.
+if fd<0 then this returns an error.
+
+The read function call read(fd,&c,1) takes file descriptor, the address for char buffer and the read length as parameter.
+it returns Number of bytes read on success
+return 0 on reaching end of file
+return -1 on error
+
+used printf to print averages.
+
+then parsed the input and added the marks into a arr created at beginning
+
+
+##################################################################################################################################################################
+q1b.
+pthread_create: create a new thread.
+int pthread_create(pthread_t * thread,const pthread_attr_t * attr, void * (*start_routine)(void *),void *arg);
+Parameters:
+thread: pointer to an unsigned integer value that returns the thread id of the thread created.
+attr: pointer to a structure that is used to define thread attributes like detached state, scheduling policy, stack address, etc. Set to NULL for default thread attributes.
+start_routine: pointer to a function that is executed by the thread. of type void*.
+arg: pointer to void that contains the arguments to the function defined in the earlier argument
+status = pthread_create(&ptid, NULL, &func, arr) arr is a float arr to store total across sections
+status is 0 on successful.
+
+pthread_join: used to wait for the termination of a thread.
+int pthread_join(pthread_t th, void **thread_return);
+
+th: thread id for which to wait.
+thread_return: location of exit status of the thread.
+
+
+readcsv function is same mostly as q1a. it takes an extra parameter as float arr to store the 
+total of both sections into it.
+
+uses open,read,printf
